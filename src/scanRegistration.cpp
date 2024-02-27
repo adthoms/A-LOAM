@@ -59,10 +59,11 @@ using std::sin;
 
 const double scanPeriod = 0.1;
 
-const int systemDelay = 0; 
+const int systemDelay = 0;
 int systemInitCount = 0;
 bool systemInited = false;
 int N_SCANS = 0;
+std::string VELODYNE_TOPIC = "/velodyne_points";
 float cloudCurvature[400000];
 int cloudSortInd[400000];
 int cloudNeighborPicked[400000];
@@ -80,7 +81,7 @@ std::vector<ros::Publisher> pubEachScan;
 
 bool PUB_EACH_LINE = false;
 
-double MINIMUM_RANGE = 0.1; 
+double MINIMUM_RANGE = 0.1;
 
 template <typename PointT>
 void removeClosedPointCloud(const pcl::PointCloud<PointT> &cloud_in,
@@ -237,9 +238,9 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
 
         float relTime = (ori - startOri) / (endOri - startOri);
         point.intensity = scanID + scanPeriod * relTime;
-        laserCloudScans[scanID].push_back(point); 
+        laserCloudScans[scanID].push_back(point);
     }
-    
+
     cloudSize = count;
     printf("points size %d \n", cloudSize);
 
@@ -299,14 +300,14 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
 
                     largestPickedNum++;
                     if (largestPickedNum <= 2)
-                    {                        
+                    {
                         cloudLabel[ind] = 2;
                         cornerPointsSharp.push_back(laserCloud->points[ind]);
                         cornerPointsLessSharp.push_back(laserCloud->points[ind]);
                     }
                     else if (largestPickedNum <= 20)
-                    {                        
-                        cloudLabel[ind] = 1; 
+                    {
+                        cloudLabel[ind] = 1;
                         cornerPointsLessSharp.push_back(laserCloud->points[ind]);
                     }
                     else
@@ -463,9 +464,13 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "scanRegistration");
     ros::NodeHandle nh;
 
+    nh.param<std::string>("velodyne_topic", VELODYNE_TOPIC, "/velodyne_points");
+
     nh.param<int>("scan_line", N_SCANS, 16);
 
     nh.param<double>("minimum_range", MINIMUM_RANGE, 0.1);
+
+    printf("velodyne topic %s \n", VELODYNE_TOPIC.c_str());
 
     printf("scan line number %d \n", N_SCANS);
 
@@ -475,7 +480,7 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    ros::Subscriber subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 100, laserCloudHandler);
+    ros::Subscriber subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>(VELODYNE_TOPIC, 100, laserCloudHandler);
 
     pubLaserCloud = nh.advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_2", 100);
 
